@@ -19,7 +19,7 @@ translations-verifier = "translations_verifier.cli:main"
 
 [dependency-groups]
 dev = [
-    "mypy>=1.15,<2",
+    "mypy>=2.3,<3",
     "pytest>=8.3,<9",
     "pytest-cov>=6,<8",
     "respx>=0.22,<1",
