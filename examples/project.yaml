@@ -1,0 +1,36 @@
+repository: canonical/ubuntu-desktop-provision
+main_branch: main
+
+translation_sets:
+  - name: ubuntu-provision
+    directory: packages/ubuntu_provision/lib/src/l10n
+    filename_pattern: ubuntu_provision_{locale}.arb
+    source_locale: en
+    context_locales: [de, es, fr]
+    max_context_chars: 4000    
+  - name: ubuntu-bootstrap
+    directory: apps/ubuntu_bootstrap/lib/l10n
+    filename_pattern: ubuntu_bootstrap_{locale}.arb
+    source_locale: en
+    context_locales: [de, es, fr]
+    max_context_chars: 4000    
+
+policy:
+  variable_patterns:
+    - '\$\{[A-Za-z_][A-Za-z0-9_]*\}'
+  immutable_tokens: [Ubuntu]
+  preserve_urls: true
+  preserve_command_flags: true
+  preserve_whitespace: true
+  allow_bidi_isolates: false
+  markup:
+    mode: none
+    allowed_tags: []
+    allowed_attributes: {}
+    immutable_attributes: [href, src]
+
+limits:
+  max_changed_files: 100
+  max_changed_keys: 1000
+  max_file_bytes: 2000000
+  max_total_bytes: 20000000

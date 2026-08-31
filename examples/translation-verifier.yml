@@ -1,0 +1,89 @@
+name: Translation verification
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "**/*.arb"
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Pull request number or URL
+        required: true
+        type: string
+
+concurrency:
+  group: translation-verifier-${{ github.event.pull_request.number || inputs.pr }}
+  cancel-in-progress: true
+
+jobs:
+  deterministic:
+    name: Deterministic translation checks
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.pull_request.user.login == 'weblate'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Check out trusted base revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify deterministic rules
+        id: verify
+        # Replace with the full commit SHA selected for your deployment.
+        uses: canonical/translations-verifier@FULL_40_CHARACTER_COMMIT_SHA
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          project-config: .github/translations-verifier/project.yaml
+          pr: ${{ github.event.pull_request.number || inputs.pr }}
+          output: deterministic-report.json
+          deterministic-only: "true"
+      - name: Upload deterministic report
+        if: always() && hashFiles('deterministic-report.json') != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: translation-verification-deterministic
+          path: deterministic-report.json
+          if-no-files-found: error
+
+  ai-review:
+    name: Approved AI translation review
+    needs: deterministic
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.pull_request.user.login == 'weblate'
+    runs-on: ubuntu-latest
+    environment: translation-verification
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Check out trusted base revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify translations with AI
+        id: verify
+        # Use the same immutable verifier revision as the deterministic job.
+        uses: canonical/translations-verifier@FULL_40_CHARACTER_COMMIT_SHA
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TRANSLATION_VERIFIER_API_KEY: ${{ secrets.TRANSLATION_VERIFIER_API_KEY }}
+        with:
+          project-config: .github/translations-verifier/project.yaml
+          ai-config: .github/translations-verifier/ai.yaml
+          pr: ${{ github.event.pull_request.number || inputs.pr }}
+          output: translation-verification.json
+      - name: Upload verification report
+        if: always() && hashFiles('translation-verification.json') != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: translation-verification
+          path: translation-verification.json
+          if-no-files-found: error

@@ -1,0 +1,80 @@
+name: Translation verifier
+description: Verify changed ARB translations without executing pull-request content
+
+inputs:
+  project-config:
+    description: Path to the trusted project configuration
+    required: true
+  ai-config:
+    description: Path to the trusted AI configuration
+    required: false
+    default: ""
+  pr:
+    description: Pull request number or GitHub pull request URL
+    required: true
+  output:
+    description: JSON report path
+    required: false
+    default: translation-verification.json
+  deterministic-only:
+    description: Skip paid AI review
+    required: false
+    default: "false"
+
+outputs:
+  status:
+    description: acceptable, unacceptable, or incomplete
+    value: ${{ steps.verify.outputs.status }}
+  report:
+    description: JSON report path
+    value: ${{ inputs.output }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install uv
+      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      with:
+        enable-cache: false
+    - name: Run translation verifier
+      id: verify
+      shell: bash
+      env:
+        INPUT_PROJECT_CONFIG: ${{ inputs.project-config }}
+        INPUT_AI_CONFIG: ${{ inputs.ai-config }}
+        INPUT_PR: ${{ inputs.pr }}
+        INPUT_OUTPUT: ${{ inputs.output }}
+        INPUT_DETERMINISTIC_ONLY: ${{ inputs.deterministic-only }}
+      run: |
+        args=(
+          verify
+          --project-config "$INPUT_PROJECT_CONFIG"
+          --pr "$INPUT_PR"
+          --output "$INPUT_OUTPUT"
+          --summary-output "$RUNNER_TEMP/translation-verification-summary.md"
+          --github-annotations
+        )
+        if [[ -n "$INPUT_AI_CONFIG" ]]; then
+          args+=(--ai-config "$INPUT_AI_CONFIG")
+        fi
+        if [[ "$INPUT_DETERMINISTIC_ONLY" == "true" ]]; then
+          args+=(--deterministic-only)
+        fi
+
+        set +e
+        uv run --locked --project "$GITHUB_ACTION_PATH" translations-verifier "${args[@]}"
+        exit_code=$?
+        set -e
+
+        if [[ -f "$RUNNER_TEMP/translation-verification-summary.md" ]]; then
+          cat "$RUNNER_TEMP/translation-verification-summary.md" >> "$GITHUB_STEP_SUMMARY"
+        fi
+        if [[ -f "$INPUT_OUTPUT" ]]; then
+          status=$(uv run --project "$GITHUB_ACTION_PATH" python -c \
+            'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["status"])' \
+            "$INPUT_OUTPUT" 2>/dev/null) || status=incomplete
+        else
+          status=incomplete
+        fi
+        printf 'status=%s\n' "$status" >> "$GITHUB_OUTPUT"
+        exit "$exit_code"
