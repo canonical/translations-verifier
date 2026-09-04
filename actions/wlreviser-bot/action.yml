@@ -1,0 +1,85 @@
+name: WLReviser Bot
+description: Authorize a PR comment and run the bundled WLReviser CLI
+
+inputs:
+  allowed-pr-authors:
+    description: JSON array of allowed Weblate PR author logins
+    default: '["weblate"]'
+    required: false
+  github-token:
+    description: Caller repository token for API access
+    default: ${{ github.token }}
+    required: true
+  weblate-token:
+    description: Weblate API token
+    required: true
+  ai-token:
+    description: Optional OpenAI-compatible endpoint token
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Authorize request and load trusted inputs
+      id: preflight
+      shell: bash
+      env:
+        BOT_ACTION_PATH: ${{ github.action_path }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        ALLOWED_PR_AUTHORS: ${{ inputs.allowed-pr-authors }}
+      run: python3 -I "$BOT_ACTION_PATH/runner.py" preflight
+
+    - name: Set up Python 3.13
+      if: steps.preflight.outputs.proceed == 'true'
+      uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      with:
+        python-version: '3.13'
+
+    - name: Install bundled CLI
+      id: install
+      if: steps.preflight.outputs.proceed == 'true'
+      shell: bash
+      env:
+        BOT_ACTION_PATH: ${{ github.action_path }}
+      run: python3 -I "$BOT_ACTION_PATH/runner.py" install
+
+    - name: Run translation command
+      id: execute
+      if: steps.preflight.outputs.proceed == 'true'
+      shell: bash
+      env:
+        BOT_ACTION_PATH: ${{ github.action_path }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        WEBLATE_TOKEN: ${{ inputs.weblate-token }}
+        WL_BOT_AI_TOKEN: ${{ inputs.ai-token }}
+      run: python3 -I "$BOT_ACTION_PATH/runner.py" execute
+
+    - name: Save verification report
+      id: upload
+      if: steps.execute.outputs.report_path != ''
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: ${{ steps.execute.outputs.artifact_name }}
+        path: ${{ steps.execute.outputs.report_path }}
+        retention-days: 30
+        if-no-files-found: error
+
+    - name: Publish command result
+      if: always()
+      shell: bash
+      env:
+        BOT_ACTION_PATH: ${{ github.action_path }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        BOT_ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+        BOT_JOB_STATUS: >-
+          ${{ steps.execute.outcome == 'success' &&
+              (steps.execute.outputs.report_path == '' || steps.upload.outcome == 'success') &&
+              'success' || 'failure' }}
+      run: python3 -I "$BOT_ACTION_PATH/runner.py" publish
+
+    - name: Remove temporary data
+      if: always()
+      shell: bash
+      env:
+        BOT_ACTION_PATH: ${{ github.action_path }}
+      run: python3 -I "$BOT_ACTION_PATH/runner.py" cleanup

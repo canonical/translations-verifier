@@ -1,0 +1,53 @@
+[project]
+name = "wlreviser"
+version = "0.1.0"
+description = "Verify Weblate translation pull requests with AI-assisted review"
+readme = "README.md"
+authors = [
+    { name = "Sergo Beruashvili", email = "sergo.beruashvili@canonical.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "httpx>=0.28.1",
+    "openai>=1.109.0",
+    "polib>=1.2.0",
+    "pydantic>=2.11.7",
+    "pyyaml>=6.0.2",
+    "requests>=2.32.5",
+    "rich>=14.1.0",
+    "typer>=0.17.4",
+    "wlc>=1.16",
+]
+
+[project.scripts]
+wlreviser = "wlreviser.cli:app"
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.405",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.1.0",
+    "respx>=0.22.0",
+    "ruff>=0.12.12",
+]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.pyright]
+include = ["src", "tests"]
+pythonVersion = "3.13"
+typeCheckingMode = "strict"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[build-system]
+requires = ["uv_build>=0.12.6,<0.13.0"]
+build-backend = "uv_build"

@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Install development tools
+        run: python -m pip install uv
+      - name: Test
+        env:
+          WLREVISER_BOT_INSTALL_TEST: '1'
+        run: uv run pytest
+      - name: Lint
+        run: uv run ruff check .
+      - name: Type check
+        run: |
+          uv run pyright
+          uv run pyright actions/wlreviser-bot/runner.py
+      - name: Install actionlint
+        run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+      - name: Validate workflows
+        run: |
+          "$(go env GOPATH)/bin/actionlint" \
+            -ignore '^unexpected key "queue" for "concurrency" section\.' \
+            -ignore '^specifying action "\$/actions/wlreviser-bot" in invalid format because ref is missing\.' \
+            .github/workflows/ci.yaml \
+            .github/workflows/wlreviser-bot.yaml \
+            examples/github-actions/wlreviser-bot.yaml
+      - name: Validate composite action metadata
+        run: >-
+          uv run --with check-jsonschema check-jsonschema
+          --schemafile https://json.schemastore.org/github-action.json
+          actions/wlreviser-bot/action.yml

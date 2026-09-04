@@ -1,0 +1,50 @@
+name: WLReviser Bot
+
+on:
+  workflow_call:
+    inputs:
+      allowed-pr-authors:
+        description: JSON array of allowed Weblate PR author logins
+        type: string
+        default: '["weblate"]'
+        required: false
+    secrets:
+      WEBLATE_TOKEN:
+        required: true
+      WL_BOT_AI_TOKEN:
+        required: false
+
+permissions: {}
+
+jobs:
+  translations:
+    if: >-
+      github.event_name == 'issue_comment' &&
+      github.event.action == 'created' &&
+      github.event.issue.pull_request &&
+      github.event.issue.state == 'open' &&
+      github.run_attempt == 1 &&
+      github.event.comment.user.type == 'User' &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association) &&
+      contains(fromJSON(inputs.allowed-pr-authors), github.event.issue.user.login) &&
+      (startsWith(github.event.comment.body, '/translations verify') ||
+       startsWith(github.event.comment.body, '/translations apply '))
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+      actions: write
+    concurrency:
+      group: wlreviser-bot-${{ github.repository_id }}-pr-${{ github.event.issue.number }}
+      cancel-in-progress: false
+      queue: max
+    steps:
+      - name: Handle translation request
+        uses: $/actions/wlreviser-bot
+        with:
+          allowed-pr-authors: ${{ inputs.allowed-pr-authors }}
+          github-token: ${{ github.token }}
+          weblate-token: ${{ secrets.WEBLATE_TOKEN }}
+          ai-token: ${{ secrets.WL_BOT_AI_TOKEN }}
