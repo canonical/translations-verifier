@@ -16,7 +16,7 @@ from wlreviser.rendering import render_apply, render_verification
 
 def test_html_rendering_omits_documents_and_treats_markup_as_text() -> None:
     html_item = VerificationItem(
-        id="WSN-ABCDEF012345",
+        id="WL-ABCDEF012345",
         status=ItemStatus.REJECTED,
         change=ChangeKind.UPDATED,
         component="component",

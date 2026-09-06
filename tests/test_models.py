@@ -18,7 +18,7 @@ from wlreviser.models import (
 )
 
 
-def rejected_item(item_id: str = "WSN-0123456789AB") -> VerificationItem:
+def rejected_item(item_id: str = "WL-0123456789AB") -> VerificationItem:
     return VerificationItem(
         id=item_id,
         status=ItemStatus.REJECTED,
@@ -105,6 +105,6 @@ def test_report_rejects_applyable_multi_form_suggestion() -> None:
 def test_generated_id_and_counts() -> None:
     item = rejected_item()
 
-    assert new_item_id({item.id}).startswith("WSN-")
+    assert new_item_id({item.id}).startswith("WL-")
     assert new_item_id({item.id}) != item.id
     assert counts_for((item,)) == ReportCounts(passed=0, rejected=1, errors=0)

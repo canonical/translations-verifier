@@ -149,7 +149,7 @@ even though credentials are excluded.
 Apply one or more rejected findings by report ID:
 
 ```console
-$ uv run wlreviser apply CONFIG.yaml REPORT.json WSN-0123456789AB WSN-ABCDEF012345
+$ uv run wlreviser apply CONFIG.yaml REPORT.json WL-0123456789AB WL-ABCDEF012345
 ```
 
 Use `all` by itself to select every applyable rejection:

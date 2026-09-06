@@ -22,7 +22,7 @@ from typing import Any, cast
 
 API_URL = "https://api.github.com"
 MAX_BYTES = 20 * 1024 * 1024
-FINDING_ID = re.compile(r"WSN-[0-9A-F]{12}")
+FINDING_ID = re.compile(r"WL-[0-9A-F]{12}")
 FAILURE = "Generation failed."
 MISSING_REPORT = (
     "No saved verification report is available for this pull request. "

@@ -35,9 +35,9 @@ SPEC.loader.exec_module(bot)
         ("/translations verify\r\n", "verify", ()),
         ("/translations apply ALL", "apply", ("all",)),
         (
-            "/translations apply WSN-0123456789AB WSN-ABCDEF012345",
+            "/translations apply WL-0123456789AB WL-ABCDEF012345",
             "apply",
-            ("WSN-0123456789AB", "WSN-ABCDEF012345"),
+            ("WL-0123456789AB", "WL-ABCDEF012345"),
         ),
     ],
 )
@@ -53,13 +53,13 @@ def test_action_command(body: str, verb: str, selectors: tuple[str, ...]) -> Non
         "/translations",
         "/translations apply",
         "/translations verify extra",
-        "/translations apply all WSN-0123456789AB",
+        "/translations apply all WL-0123456789AB",
         "/translations apply --help",
         "/translations apply $(id)",
         "/translations verify\nprose",
         "> /translations verify",
         " /translations verify",
-        "/translations apply wsn-0123456789ab",
+        "/translations apply wl-0123456789ab",
     ],
 )
 def test_action_command_denied(body: str) -> None:
@@ -497,7 +497,7 @@ def test_action_apply_loads_original_report_without_extending_retention(
     monkeypatch: pytest.MonkeyPatch,
     missing: bool,
 ) -> None:
-    event["comment"]["body"] = "/translations apply WSN-0123456789AB"
+    event["comment"]["body"] = "/translations apply WL-0123456789AB"
     (action_environment.parent / "event.json").write_text(json.dumps(event))
     report["created_at"] = (datetime.now(UTC) - timedelta(days=29)).isoformat()
     api = LifecycleGitHub(event)
@@ -525,7 +525,7 @@ def test_action_apply_loads_original_report_without_extending_retention(
                 "apply",
                 str(action_environment / "config.yaml"),
                 str(path),
-                "WSN-0123456789AB",
+                "WL-0123456789AB",
             ]
             assert "GITHUB_TOKEN" not in kwargs["env"]
             kwargs["stdout"].write(b"Updated 1")

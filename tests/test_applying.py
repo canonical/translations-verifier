@@ -66,9 +66,9 @@ def item(
 
 def report() -> VerificationReport:
     items = (
-        item("WSN-000000000001", unit_id=1),
-        item("WSN-000000000002", unit_id=2),
-        item("WSN-000000000003", status=ItemStatus.PASSED, applyable=False, unit_id=None),
+        item("WL-000000000001", unit_id=1),
+        item("WL-000000000002", unit_id=2),
+        item("WL-000000000003", status=ItemStatus.PASSED, applyable=False, unit_id=None),
     )
     return VerificationReport(
         created_at=datetime(2026, 1, 1, tzinfo=UTC),
@@ -108,11 +108,11 @@ def test_apply_continues_and_operates_only_on_successful_components() -> None:
     result = service.apply(
         report(),
         [
-            "WSN-000000000001",
-            "WSN-000000000001",
+            "WL-000000000001",
+            "WL-000000000001",
             "unknown",
-            "WSN-000000000003",
-            "WSN-000000000002",
+            "WL-000000000003",
+            "WL-000000000002",
         ],
     )
 
@@ -145,7 +145,7 @@ def test_apply_skips_push_when_component_uses_automatic_push() -> None:
     gateway = FakeGateway()
     service = ApplyService(config(push_after_commit=False), gateway)  # type: ignore[arg-type]
 
-    result = service.apply(report(), ["WSN-000000000001"])
+    result = service.apply(report(), ["WL-000000000001"])
 
     assert gateway.commits == ["component"]
     assert gateway.pushes == []
@@ -157,7 +157,7 @@ def test_apply_rejects_mixed_all_and_report_mismatch() -> None:
     service = ApplyService(config(), FakeGateway())  # type: ignore[arg-type]
 
     with pytest.raises(PreflightError, match="cannot be combined"):
-        service.apply(report(), ["all", "WSN-000000000001"])
+        service.apply(report(), ["all", "WL-000000000001"])
 
     mismatched = report().model_copy(update={"repository": "other/repo"})
     with pytest.raises(PreflightError, match="repository"):

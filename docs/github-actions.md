@@ -59,7 +59,7 @@ Post one of these as a new comment in the PR's main conversation, not an inline 
 
 ```text
 /translations verify
-/translations apply WSN-0123456789AB WSN-ABCDEF012345
+/translations apply WL-0123456789AB WL-ABCDEF012345
 /translations apply all
 ```
 

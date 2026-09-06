@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator, m
 from wlreviser.config import TranslationFormat
 
 REPORT_SCHEMA_VERSION: Final = 2
-_ITEM_ID_PATTERN = re.compile(r"^WSN-[0-9A-F]{12}$")
+_ITEM_ID_PATTERN = re.compile(r"^WL-[0-9A-F]{12}$")
 NonEmptyText = Annotated[str, Field(min_length=1)]
 
 
@@ -168,7 +168,7 @@ class VerificationItem(StrictModel):
     @classmethod
     def validate_id(cls, value: str) -> str:
         if not _ITEM_ID_PATTERN.fullmatch(value):
-            raise ValueError("item ID must have the form WSN-<12 uppercase hex characters>")
+            raise ValueError("item ID must have the form WL-<12 uppercase hex characters>")
         return value
 
     @model_validator(mode="after")
@@ -253,7 +253,7 @@ def new_item_id(existing: Collection[str] = ()) -> str:
     """Generate a readable random item ID without a report-local collision."""
     occupied = set(existing)
     while True:
-        candidate = f"WSN-{secrets.token_hex(6).upper()}"
+        candidate = f"WL-{secrets.token_hex(6).upper()}"
         if candidate not in occupied:
             return candidate
 
