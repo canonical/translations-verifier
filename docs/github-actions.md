@@ -48,7 +48,11 @@ on:
   issue_comment:
     types: [created]
 
-permissions: {}
+permissions:
+  contents: read
+  pull-requests: read
+  issues: write
+  actions: write
 
 jobs:
   translations:
