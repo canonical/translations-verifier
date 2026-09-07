@@ -50,7 +50,7 @@ on:
 
 permissions:
   contents: read
-  pull-requests: read
+  pull-requests: write
   issues: write
   actions: write
 
@@ -67,7 +67,7 @@ jobs:
        startsWith(github.event.comment.body, '/translations apply '))
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
       issues: write
       actions: write
     uses: canonical/translations-verifier/.github/workflows/wlreviser-bot.yaml@main
@@ -204,8 +204,8 @@ The caller workflow requests four specific permissions:
 | Permission | Purpose |
 | --- | --- |
 | `contents: read` | Read `.github/.wlreviser-bot.yaml` configuration and source translation files at the PR commits. |
-| `pull-requests: read` | Access PR metadata and changed-file listings. |
-| `issues: write` | Post status/review comments and add reactions. |
+| `pull-requests: write` | Access PR metadata and post comments and reactions on pull requests. |
+| `issues: write` | Post comments and reactions on issues. |
 | `actions: write` | Delete older verification report artifacts before uploading an updated report. |
 
 ### Output and Failure Handling
