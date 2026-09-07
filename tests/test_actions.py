@@ -329,7 +329,7 @@ def test_action_workflow_contract() -> None:
     assert caller["on"] == {"issue_comment": {"types": ["created"]}}
     permissions = {
         "contents": "read",
-        "pull-requests": "read",
+        "pull-requests": "write",
         "issues": "write",
         "actions": "write",
     }
