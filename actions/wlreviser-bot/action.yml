@@ -29,11 +29,11 @@ runs:
         ALLOWED_PR_AUTHORS: ${{ inputs.allowed-pr-authors }}
       run: python3 -I "$BOT_ACTION_PATH/runner.py" preflight
 
-    - name: Set up Python 3.13
+    - name: Set up Python
       if: steps.preflight.outputs.proceed == 'true'
       uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
       with:
-        python-version: '3.13'
+        python-version-file: ${{ github.action_path }}/../../.python-version
 
     - name: Install bundled CLI
       id: install
