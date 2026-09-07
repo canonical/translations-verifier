@@ -14,7 +14,11 @@ on:
       WL_BOT_AI_TOKEN:
         required: false
 
-permissions: {}
+permissions:
+  contents: read
+  pull-requests: read
+  issues: write
+  actions: write
 
 jobs:
   translations:

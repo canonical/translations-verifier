@@ -301,7 +301,12 @@ def test_action_workflow_contract() -> None:
         "issues": "write",
         "actions": "write",
     }
-    assert worker["permissions"] == caller["jobs"]["translations"]["permissions"] == permissions
+    assert (
+        workflow["permissions"]
+        == worker["permissions"]
+        == caller["jobs"]["translations"]["permissions"]
+        == permissions
+    )
     for job in [worker, caller["jobs"]["translations"]]:
         guard = job["if"]
         for required in [
