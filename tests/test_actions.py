@@ -118,6 +118,38 @@ def test_action_authorization(event: dict[str, Any], role: str) -> None:
     assert all(method == "GET" for method, _path, _data in api.calls)
 
 
+@pytest.mark.parametrize(
+    ("status", "headers", "code"),
+    [
+        (401, {}, bot.ErrorCode.ERR_GITHUB_MUTATION_UNAUTHORIZED),
+        (403, {}, bot.ErrorCode.ERR_GITHUB_MUTATION_FORBIDDEN),
+        (403, {"Retry-After": "60"}, bot.ErrorCode.ERR_GITHUB_MUTATION_RATE_LIMITED),
+        (403, {"X-RateLimit-Remaining": "0"}, bot.ErrorCode.ERR_GITHUB_MUTATION_RATE_LIMITED),
+        (404, {}, bot.ErrorCode.ERR_GITHUB_MUTATION_NOT_FOUND),
+        (422, {}, bot.ErrorCode.ERR_GITHUB_MUTATION_REJECTED),
+        (429, {}, bot.ErrorCode.ERR_GITHUB_MUTATION_RATE_LIMITED),
+        (500, {}, bot.ErrorCode.ERR_GITHUB_MUTATION_FAILED),
+    ],
+)
+def test_action_mutation_error_code(
+    monkeypatch: pytest.MonkeyPatch,
+    status: int,
+    headers: dict[str, str],
+    code: str,
+) -> None:
+    def request(
+        _method: str, _path: str, _data: dict[str, Any] | None = None
+    ) -> tuple[int, bytes, dict[str, str]]:
+        return status, b"private", headers
+
+    api = bot.GitHub("canonical/repo", "secret")
+    monkeypatch.setattr(api, "request", request)
+    with pytest.raises(bot.BotError) as exc_info:
+        api.mutate("POST", "/repos/canonical/repo/issues/7/comments", {"body": "test"})
+    assert exc_info.value.code == code
+    assert exc_info.value.operation == "POST /repos/canonical/repo/issues/7/comments"
+
+
 @pytest.mark.parametrize("role", ["write", "read", "triage", "custom-maintainer", ""])
 def test_action_denies_other_roles(event: dict[str, Any], role: str) -> None:
     api = FakeGitHub(event, role)
@@ -657,6 +689,28 @@ def test_action_error_code_surfaced_in_stdout(
     assert bot.main() == 1
     output = capsys.readouterr()
     assert output.out == "Generation failed: ERR_CONFIG_NOT_FOUND\n"
+    assert output.err == ""
+
+
+def test_action_mutation_operation_surfaced_in_stdout(
+    action_environment: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    def fail_flow(_api: Any, _directory: Path) -> None:
+        raise bot.BotError(
+            bot.ErrorCode.ERR_GITHUB_MUTATION_FORBIDDEN,
+            "POST /repos/canonical/repo/issues/comments/123/reactions",
+        )
+
+    monkeypatch.setattr(bot, "preflight", fail_flow)
+    monkeypatch.setattr(sys, "argv", [str(HELPER), "preflight"])
+    assert bot.main() == 1
+    output = capsys.readouterr()
+    assert output.out == (
+        "Generation failed: ERR_GITHUB_MUTATION_FORBIDDEN "
+        "(POST /repos/canonical/repo/issues/comments/123/reactions)\n"
+    )
     assert output.err == ""
 
 
