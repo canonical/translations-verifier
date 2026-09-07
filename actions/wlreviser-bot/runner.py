@@ -41,6 +41,11 @@ class ErrorCode:
     ERR_GITHUB_REQUEST_FAILED = "ERR_GITHUB_REQUEST_FAILED"
     ERR_GITHUB_PAYLOAD_INVALID = "ERR_GITHUB_PAYLOAD_INVALID"
     ERR_GITHUB_MUTATION_FAILED = "ERR_GITHUB_MUTATION_FAILED"
+    ERR_GITHUB_MUTATION_UNAUTHORIZED = "ERR_GITHUB_MUTATION_UNAUTHORIZED"
+    ERR_GITHUB_MUTATION_FORBIDDEN = "ERR_GITHUB_MUTATION_FORBIDDEN"
+    ERR_GITHUB_MUTATION_NOT_FOUND = "ERR_GITHUB_MUTATION_NOT_FOUND"
+    ERR_GITHUB_MUTATION_REJECTED = "ERR_GITHUB_MUTATION_REJECTED"
+    ERR_GITHUB_MUTATION_RATE_LIMITED = "ERR_GITHUB_MUTATION_RATE_LIMITED"
     ERR_GITHUB_PAGE_LIMIT_EXCEEDED = "ERR_GITHUB_PAGE_LIMIT_EXCEEDED"
     ERR_OUTPUT_FORMAT_INVALID = "ERR_OUTPUT_FORMAT_INVALID"
     ERR_CONFIG_COMMIT_INVALID = "ERR_CONFIG_COMMIT_INVALID"
@@ -66,13 +71,15 @@ class ErrorCode:
 
 
 class BotError(Exception):
-    def __init__(self, code: str = ErrorCode.ERR_UNKNOWN) -> None:
+    def __init__(self, code: str = ErrorCode.ERR_UNKNOWN, operation: str | None = None) -> None:
         super().__init__(code)
         self.code = code
+        self.operation = operation
 
 
-def failure_message(code: str) -> str:
-    return f"{FAILURE.rstrip('.')}: {code}"
+def failure_message(code: str, operation: str | None = None) -> str:
+    message = f"{FAILURE.rstrip('.')}: {code}"
+    return f"{message} ({operation})" if operation else message
 
 
 class Denied(BotError):
@@ -160,9 +167,27 @@ class GitHub:
         return cast(dict[str, Any], value)
 
     def mutate(self, method: str, path: str, data: dict[str, Any] | None = None) -> None:
-        status, _content, _headers = self.request(method, path, data)
+        status, _content, headers = self.request(method, path, data)
         if status not in {200, 201, 204}:
-            raise BotError(ErrorCode.ERR_GITHUB_MUTATION_FAILED)
+            normalized_headers = {key.lower(): value for key, value in headers.items()}
+            if status == 401:
+                code = ErrorCode.ERR_GITHUB_MUTATION_UNAUTHORIZED
+            elif status == 403 and (
+                "retry-after" in normalized_headers
+                or normalized_headers.get("x-ratelimit-remaining") == "0"
+            ):
+                code = ErrorCode.ERR_GITHUB_MUTATION_RATE_LIMITED
+            elif status == 403:
+                code = ErrorCode.ERR_GITHUB_MUTATION_FORBIDDEN
+            elif status == 404:
+                code = ErrorCode.ERR_GITHUB_MUTATION_NOT_FOUND
+            elif status == 422:
+                code = ErrorCode.ERR_GITHUB_MUTATION_REJECTED
+            elif status == 429:
+                code = ErrorCode.ERR_GITHUB_MUTATION_RATE_LIMITED
+            else:
+                code = ErrorCode.ERR_GITHUB_MUTATION_FAILED
+            raise BotError(code, f"{method} {path}")
 
     def pages(self, path: str, key: str | None = None) -> list[dict[str, Any]]:
         result: list[dict[str, Any]] = []
@@ -649,7 +674,7 @@ def main() -> int:
         return 0
     except BotError as error:
         code = error.code if getattr(error, "code", None) else ErrorCode.ERR_UNKNOWN
-        print(failure_message(code))
+        print(failure_message(code, error.operation))
         return 1
     except subprocess.TimeoutExpired:
         print(failure_message(ErrorCode.ERR_CLI_EXECUTION_TIMEOUT))
