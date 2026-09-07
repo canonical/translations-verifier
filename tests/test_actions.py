@@ -591,8 +591,9 @@ def test_action_config_failure_publishes_only_generic_message(
 ) -> None:
     api = LifecycleGitHub(event)
     api.fail_config = True
-    with pytest.raises(bot.BotError):
+    with pytest.raises(bot.BotError) as exc_info:
         bot.preflight(api, action_environment)
+    assert exc_info.value.code == bot.ErrorCode.ERR_CONFIG_NOT_FOUND
     bot.publish(api, action_environment)
     assert api.comments[0]["body"] == "<!-- wlreviser-bot:123:status -->\nGeneration failed."
 
@@ -633,7 +634,36 @@ def test_action_top_level_crash_is_generic(
     monkeypatch.setattr(sys, "argv", [str(HELPER), "preflight"])
     assert bot.main() == 1
     output = capsys.readouterr()
-    assert output.out == "Generation failed.\n"
+    assert output.out == f"{bot.FAILURE.rstrip('.')}: {bot.ErrorCode.ERR_UNEXPECTED}\n"
+    assert "private exception containing a token" not in output.out
+    assert output.err == ""
+
+
+def test_action_error_code_surfaced_in_stdout(
+    action_environment: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    def fail_flow(_api: Any, _directory: Path) -> None:
+        raise bot.BotError(bot.ErrorCode.ERR_CONFIG_NOT_FOUND)
+
+    monkeypatch.setattr(bot, "preflight", fail_flow)
+    monkeypatch.setattr(sys, "argv", [str(HELPER), "preflight"])
+    assert bot.main() == 1
+    output = capsys.readouterr()
+    assert output.out == "Generation failed: ERR_CONFIG_NOT_FOUND\n"
+    assert output.err == ""
+
+
+def test_action_unknown_phase_error_code(
+    action_environment: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(sys, "argv", [str(HELPER), "unknown_phase"])
+    assert bot.main() == 1
+    output = capsys.readouterr()
+    assert output.out == "Generation failed: ERR_UNKNOWN_PHASE\n"
     assert output.err == ""
 
 

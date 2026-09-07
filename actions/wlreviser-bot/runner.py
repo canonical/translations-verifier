@@ -31,8 +31,48 @@ MISSING_REPORT = (
 TOKEN_NAMES = ("GITHUB_TOKEN", "WEBLATE_TOKEN", "WL_BOT_AI_TOKEN")
 
 
+class ErrorCode:
+    ERR_UNKNOWN = "ERR_UNKNOWN"
+    ERR_UNEXPECTED = "ERR_UNEXPECTED"
+    ERR_UNKNOWN_PHASE = "ERR_UNKNOWN_PHASE"
+    ERR_INVALID_RUN_ENVIRONMENT = "ERR_INVALID_RUN_ENVIRONMENT"
+    ERR_GITHUB_PATH_INVALID = "ERR_GITHUB_PATH_INVALID"
+    ERR_GITHUB_RESPONSE_TOO_LARGE = "ERR_GITHUB_RESPONSE_TOO_LARGE"
+    ERR_GITHUB_REQUEST_FAILED = "ERR_GITHUB_REQUEST_FAILED"
+    ERR_GITHUB_PAYLOAD_INVALID = "ERR_GITHUB_PAYLOAD_INVALID"
+    ERR_GITHUB_MUTATION_FAILED = "ERR_GITHUB_MUTATION_FAILED"
+    ERR_GITHUB_PAGE_LIMIT_EXCEEDED = "ERR_GITHUB_PAGE_LIMIT_EXCEEDED"
+    ERR_OUTPUT_FORMAT_INVALID = "ERR_OUTPUT_FORMAT_INVALID"
+    ERR_CONFIG_COMMIT_INVALID = "ERR_CONFIG_COMMIT_INVALID"
+    ERR_CONFIG_NOT_FOUND = "ERR_CONFIG_NOT_FOUND"
+    ERR_CONFIG_INVALID = "ERR_CONFIG_INVALID"
+    ERR_TIMESTAMP_INVALID = "ERR_TIMESTAMP_INVALID"
+    ERR_REPORT_TOO_LARGE = "ERR_REPORT_TOO_LARGE"
+    ERR_REPORT_NOT_FOUND = "ERR_REPORT_NOT_FOUND"
+    ERR_REPORT_INVALID = "ERR_REPORT_INVALID"
+    ERR_ARTIFACT_REDIRECT_INVALID = "ERR_ARTIFACT_REDIRECT_INVALID"
+    ERR_ARTIFACT_TOO_LARGE = "ERR_ARTIFACT_TOO_LARGE"
+    ERR_ARTIFACT_CHECKSUM_MISMATCH = "ERR_ARTIFACT_CHECKSUM_MISMATCH"
+    ERR_ARCHIVE_ENTRY_COUNT_INVALID = "ERR_ARCHIVE_ENTRY_COUNT_INVALID"
+    ERR_ARCHIVE_MEMBER_INVALID = "ERR_ARCHIVE_MEMBER_INVALID"
+    ERR_ARCHIVE_CONTENT_TOO_LARGE = "ERR_ARCHIVE_CONTENT_TOO_LARGE"
+    ERR_TOKEN_MISSING = "ERR_TOKEN_MISSING"
+    ERR_INSTALL_FAILED = "ERR_INSTALL_FAILED"
+    ERR_INSTALL_TIMEOUT = "ERR_INSTALL_TIMEOUT"
+    ERR_CLI_EXECUTION_FAILED = "ERR_CLI_EXECUTION_FAILED"
+    ERR_CLI_EXECUTION_TIMEOUT = "ERR_CLI_EXECUTION_TIMEOUT"
+    ERR_REPORT_SECRET_DETECTED = "ERR_REPORT_SECRET_DETECTED"
+    ERR_ARTIFACT_VERIFICATION_FAILED = "ERR_ARTIFACT_VERIFICATION_FAILED"
+
+
 class BotError(Exception):
-    pass
+    def __init__(self, code: str = ErrorCode.ERR_UNKNOWN) -> None:
+        super().__init__(code)
+        self.code = code
+
+
+def failure_message(code: str) -> str:
+    return f"{FAILURE.rstrip('.')}: {code}"
 
 
 class Denied(BotError):
@@ -86,7 +126,7 @@ class GitHub:
         self, method: str, path: str, data: dict[str, Any] | None = None
     ) -> tuple[int, bytes, dict[str, str]]:
         if not path.startswith("/") or path.startswith("//"):
-            raise BotError()
+            raise BotError(ErrorCode.ERR_GITHUB_PATH_INVALID)
         request = urllib.request.Request(
             API_URL + path,
             data=json.dumps(data).encode() if data is not None else None,
@@ -107,22 +147,22 @@ class GitHub:
         with response:
             content = response.read(MAX_BYTES + 1)
             if len(content) > MAX_BYTES:
-                raise BotError()
+                raise BotError(ErrorCode.ERR_GITHUB_RESPONSE_TOO_LARGE)
             return response.code, content, dict(response.headers.items())
 
     def get(self, path: str) -> dict[str, Any]:
         status, content, _headers = self.request("GET", path)
         if status != 200:
-            raise BotError()
+            raise BotError(ErrorCode.ERR_GITHUB_REQUEST_FAILED)
         value = json.loads(content)
         if not isinstance(value, dict):
-            raise BotError()
+            raise BotError(ErrorCode.ERR_GITHUB_PAYLOAD_INVALID)
         return cast(dict[str, Any], value)
 
     def mutate(self, method: str, path: str, data: dict[str, Any] | None = None) -> None:
         status, _content, _headers = self.request(method, path, data)
         if status not in {200, 201, 204}:
-            raise BotError()
+            raise BotError(ErrorCode.ERR_GITHUB_MUTATION_FAILED)
 
     def pages(self, path: str, key: str | None = None) -> list[dict[str, Any]]:
         result: list[dict[str, Any]] = []
@@ -132,18 +172,18 @@ class GitHub:
                 "GET", f"{path}{separator}per_page=100&page={page}"
             )
             if status != 200:
-                raise BotError()
+                raise BotError(ErrorCode.ERR_GITHUB_REQUEST_FAILED)
             value = json.loads(content)
             raw_entries = value[key] if key else value
             if not isinstance(raw_entries, list):
-                raise BotError()
+                raise BotError(ErrorCode.ERR_GITHUB_PAYLOAD_INVALID)
             entries = cast(list[Any], raw_entries)
             if not all(isinstance(item, dict) for item in entries):
-                raise BotError()
+                raise BotError(ErrorCode.ERR_GITHUB_PAYLOAD_INVALID)
             result.extend(entries)
             if len(entries) < 100:
                 return result
-        raise BotError()
+        raise BotError(ErrorCode.ERR_GITHUB_PAGE_LIMIT_EXCEEDED)
 
 
 def authorize(
@@ -211,7 +251,7 @@ def save_state(directory: Path, state: dict[str, Any]) -> None:
 
 def set_output(name: str, value: str) -> None:
     if "\n" in value or "\r" in value or not re.fullmatch(r"[a-z_]+", name):
-        raise BotError()
+        raise BotError(ErrorCode.ERR_OUTPUT_FORMAT_INVALID)
     with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as stream:
         stream.write(f"{name}={value}\n")
 
@@ -222,11 +262,17 @@ def fetch_config(api: GitHub, directory: Path) -> str:
     commit = api.get(f"{api.prefix}/commits/{urllib.parse.quote(branch, safe='')}")
     sha = commit["sha"]
     if not re.fullmatch(r"[0-9a-f]{40}", sha):
-        raise BotError()
-    config = api.get(f"{api.prefix}/contents/.github/.wlreviser-bot.yaml?ref={sha}")
+        raise BotError(ErrorCode.ERR_CONFIG_COMMIT_INVALID)
+    try:
+        config = api.get(f"{api.prefix}/contents/.github/.wlreviser-bot.yaml?ref={sha}")
+    except BotError:
+        raise BotError(ErrorCode.ERR_CONFIG_NOT_FOUND) from None
     if config["type"] != "file" or config["encoding"] != "base64":
-        raise BotError()
-    content = base64.b64decode("".join(config["content"].split()), validate=True)
+        raise BotError(ErrorCode.ERR_CONFIG_INVALID)
+    try:
+        content = base64.b64decode("".join(config["content"].split()), validate=True)
+    except Exception:
+        raise BotError(ErrorCode.ERR_CONFIG_INVALID) from None
     private_write(directory / "config.yaml", content)
     return branch
 
@@ -234,7 +280,7 @@ def fetch_config(api: GitHub, directory: Path) -> str:
 def timestamp(value: str) -> datetime:
     parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     if parsed.tzinfo is None:
-        raise BotError()
+        raise BotError(ErrorCode.ERR_TIMESTAMP_INVALID)
     return parsed
 
 
@@ -248,7 +294,7 @@ def report_name(number: int) -> str:
 
 def validate_report(content: bytes, repository: str, number: int, now: datetime) -> None:
     if len(content) > MAX_BYTES:
-        raise BotError()
+        raise BotError(ErrorCode.ERR_REPORT_TOO_LARGE)
     report = json.loads(content)
     if (
         report["schema_version"] != 2
@@ -257,7 +303,7 @@ def validate_report(content: bytes, repository: str, number: int, now: datetime)
         or report["pull_request_url"] != f"https://github.com/{repository}/pull/{number}"
         or not recent(report["created_at"], now)
     ):
-        raise BotError()
+        raise BotError(ErrorCode.ERR_REPORT_INVALID)
 
 
 def artifacts(api: GitHub, number: int) -> list[dict[str, Any]]:
@@ -316,15 +362,15 @@ def download_archive(api: GitHub, artifact: dict[str, Any]) -> bytes:
     location = {key.lower(): value for key, value in headers.items()}.get("location", "")
     url = urllib.parse.urlsplit(location)
     if status != 302 or url.scheme != "https" or not url.hostname or url.username or url.password:
-        raise BotError()
+        raise BotError(ErrorCode.ERR_ARTIFACT_REDIRECT_INVALID)
     opener = urllib.request.build_opener(NoRedirect())
     with opener.open(urllib.request.Request(location), timeout=60) as response:
         archive = response.read(MAX_BYTES + 1)
     if len(archive) > MAX_BYTES:
-        raise BotError()
+        raise BotError(ErrorCode.ERR_ARTIFACT_TOO_LARGE)
     digest = artifact.get("digest")
     if digest and digest != f"sha256:{hashlib.sha256(archive).hexdigest()}":
-        raise BotError()
+        raise BotError(ErrorCode.ERR_ARTIFACT_CHECKSUM_MISMATCH)
     return archive
 
 
@@ -332,7 +378,7 @@ def extract_report(archive: bytes, filename: str) -> bytes:
     with zipfile.ZipFile(io.BytesIO(archive)) as zipped:
         entries = zipped.infolist()
         if len(entries) != 1:
-            raise BotError()
+            raise BotError(ErrorCode.ERR_ARCHIVE_ENTRY_COUNT_INVALID)
         entry = entries[0]
         mode = stat.S_IFMT(entry.external_attr >> 16)
         if (
@@ -342,11 +388,11 @@ def extract_report(archive: bytes, filename: str) -> bytes:
             or mode not in {0, stat.S_IFREG}
             or entry.flag_bits & 1
         ):
-            raise BotError()
+            raise BotError(ErrorCode.ERR_ARCHIVE_MEMBER_INVALID)
         with zipped.open(entry) as stream:
             content = stream.read(MAX_BYTES + 1)
         if len(content) > MAX_BYTES:
-            raise BotError()
+            raise BotError(ErrorCode.ERR_ARCHIVE_CONTENT_TOO_LARGE)
         return content
 
 
@@ -406,7 +452,7 @@ def child_environment(verb: str) -> dict[str, str]:
     for name in names:
         value = os.environ.get(name, "")
         if not value and name != "WL_BOT_AI_TOKEN":
-            raise BotError()
+            raise BotError(ErrorCode.ERR_TOKEN_MISSING)
         if value:
             environment[name] = value
     return environment
@@ -435,15 +481,20 @@ def install(directory: Path) -> None:
         ],
     ]
     for command in commands:
-        subprocess.run(
-            command,
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            timeout=300,
-            shell=False,
-            cwd=directory,
-        )
+        try:
+            subprocess.run(
+                command,
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=300,
+                shell=False,
+                cwd=directory,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise BotError(ErrorCode.ERR_INSTALL_TIMEOUT) from exc
+        except subprocess.CalledProcessError as exc:
+            raise BotError(ErrorCode.ERR_INSTALL_FAILED) from exc
 
 
 def execute(api: GitHub, directory: Path) -> None:
@@ -462,28 +513,33 @@ def execute(api: GitHub, directory: Path) -> None:
     stdout_path = directory / "stdout.txt"
     stderr_path = directory / "stderr.txt"
     with stdout_path.open("wb") as stdout, stderr_path.open("wb") as stderr:
-        result = subprocess.run(
-            command,
-            shell=False,
-            stdout=stdout,
-            stderr=stderr,
-            timeout=3000,
-            env=child_environment(state["verb"]),
-            cwd=directory,
-            check=False,
-        )
+        try:
+            result = subprocess.run(
+                command,
+                shell=False,
+                stdout=stdout,
+                stderr=stderr,
+                timeout=3000,
+                env=child_environment(state["verb"]),
+                cwd=directory,
+                check=False,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise BotError(ErrorCode.ERR_CLI_EXECUTION_TIMEOUT) from exc
     if result.returncode != 0:
-        raise BotError()
+        raise BotError(ErrorCode.ERR_CLI_EXECUTION_FAILED)
     output = redact(stdout_path.read_text(encoding="utf-8"))
     private_write(directory / "output.txt", output.encode())
     if state["verb"] == "verify":
+        if not report_path.is_file():
+            raise BotError(ErrorCode.ERR_REPORT_NOT_FOUND)
         content = report_path.read_bytes()
         validate_report(content, api.repository, number, datetime.now(UTC))
         text = content.decode("utf-8")
         if redact(text) != text or redact(json.dumps(json.loads(text), ensure_ascii=False)) != (
             json.dumps(json.loads(text), ensure_ascii=False)
         ):
-            raise BotError()
+            raise BotError(ErrorCode.ERR_REPORT_SECRET_DETECTED)
         delete_reports(api, number)
         set_output("report_path", str(report_path))
         set_output("artifact_name", report_name(number))
@@ -536,7 +592,7 @@ def publish(api: GitHub, directory: Path) -> None:
             artifact_id = int(os.environ["BOT_ARTIFACT_ID"])
             remaining = artifacts(api, state["number"])
             if len(remaining) != 1 or remaining[0]["id"] != artifact_id:
-                raise BotError()
+                raise BotError(ErrorCode.ERR_ARTIFACT_VERIFICATION_FAILED)
             footer += (
                 f" | [JSON report](https://github.com/{api.repository}/actions/runs/"
                 f"{run_id}/artifacts/{artifact_id})"
@@ -552,16 +608,18 @@ def publish(api: GitHub, directory: Path) -> None:
 
 
 def work_directory() -> Path:
-    run_id = os.environ["GITHUB_RUN_ID"]
-    attempt = os.environ["GITHUB_RUN_ATTEMPT"]
-    if not run_id.isdecimal() or not attempt.isdecimal():
-        raise BotError()
+    run_id = os.environ.get("GITHUB_RUN_ID", "")
+    attempt = os.environ.get("GITHUB_RUN_ATTEMPT", "")
+    if not run_id.isdecimal() or not attempt.isdecimal() or "RUNNER_TEMP" not in os.environ:
+        raise BotError(ErrorCode.ERR_INVALID_RUN_ENVIRONMENT)
     return Path(os.environ["RUNNER_TEMP"]) / f"wlreviser-bot-{run_id}-{attempt}"
 
 
 def main() -> int:
     os.umask(0o077)
     try:
+        if len(sys.argv) < 2:
+            raise BotError(ErrorCode.ERR_UNKNOWN_PHASE)
         phase = sys.argv[1]
         directory = work_directory()
         if phase == "cleanup":
@@ -584,13 +642,20 @@ def main() -> int:
                 publish(api, directory)
                 raise
         else:
-            raise BotError()
+            raise BotError(ErrorCode.ERR_UNKNOWN_PHASE)
         return 0
     except Denied:
         print("Translation request was not accepted.")
         return 0
+    except BotError as error:
+        code = error.code if getattr(error, "code", None) else ErrorCode.ERR_UNKNOWN
+        print(failure_message(code))
+        return 1
+    except subprocess.TimeoutExpired:
+        print(failure_message(ErrorCode.ERR_CLI_EXECUTION_TIMEOUT))
+        return 1
     except Exception:
-        print(FAILURE)
+        print(failure_message(ErrorCode.ERR_UNEXPECTED))
         return 1
 
 
