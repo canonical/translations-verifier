@@ -28,4 +28,7 @@ jobs:
           RELEASE_PR: ${{ steps.release.outputs.pr }}
         run: |
           release_branch=$(jq -er '.headBranchName' <<<"$RELEASE_PR")
-          gh workflow run ci.yaml --ref "$release_branch"
+          gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yaml/dispatches" \
+            -f ref="$release_branch"

@@ -3,6 +3,8 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 import wlreviser
 
 ROOT = Path(__file__).parents[1]
@@ -44,3 +46,16 @@ def test_release_please_policy() -> None:
         "path": "uv.lock",
         "jsonpath": "$.package[?(@.name == 'wlreviser')].version",
     } in package["extra-files"]
+
+
+def test_release_please_dispatches_ci_for_release_pull_request() -> None:
+    workflow = yaml.load(
+        (ROOT / ".github/workflows/release-please.yaml").read_text(), Loader=yaml.BaseLoader
+    )
+    dispatch = workflow["jobs"]["release"]["steps"][1]
+
+    assert dispatch["if"] == "steps.release.outputs.prs_created == 'true'"
+    assert "'.headBranchName'" in dispatch["run"]
+    assert '"repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yaml/dispatches"' in dispatch["run"]
+    assert '-f ref="$release_branch"' in dispatch["run"]
+    assert "gh workflow run" not in dispatch["run"]
