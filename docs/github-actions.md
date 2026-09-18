@@ -78,7 +78,14 @@ jobs:
       WL_BOT_AI_TOKEN: ${{ secrets.WL_BOT_AI_TOKEN }}
 ```
 
-> **Versioning recommendation:** While `@main` tracks the latest changes, in production you may pin a full 40-character commit SHA (e.g., `@<commit-sha>`) for immutable versioning.
+### Pinning
+
+Production callers should pin the reusable workflow to the full commit SHA of an
+exact release and keep its SemVer tag in a comment:
+
+```yaml
+uses: canonical/translations-verifier/.github/workflows/wlreviser-bot.yaml@<40-character-release-sha> # v0.1.0
+```
 
 ### Step 2: Add Project Translation Configuration
 
@@ -235,3 +242,27 @@ Once you have added the workflow and configuration files:
    /translations apply <FINDING_ID>
    ```
    Confirm that the bot updates the string in Weblate and reports the result in the PR conversation.
+
+---
+
+## Maintainer Releases
+
+[Release Please](https://github.com/googleapis/release-please) maintains the
+changelog and version files through a release pull request. Commit and squash
+merge titles must follow Conventional Commits:
+
+- `fix:` produces a patch release.
+- `feat:` produces a minor release.
+- A type followed by `!`, or a `BREAKING CHANGE` footer, produces a major release.
+
+The Release Please workflow opens or updates the release pull request after
+changes land on `main`. It explicitly dispatches CI for that branch. Merging a
+passing release pull request creates the exact Git tag and a published GitHub
+Release.
+
+For the initial release, merge the release infrastructure first, then merge the
+generated `v0.1.0` release pull request. Resolve `v0.1.0` to its full commit SHA
+before updating the caller template and downstream repositories.
+
+This process versions the reusable workflow, composite action, and bundled CLI
+together. It does not publish the Python package to PyPI.
