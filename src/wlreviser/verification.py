@@ -386,6 +386,13 @@ class VerificationService:
             )
         assert change.new is not None
         assert source_unit is not None
+        if any(not form.strip() for form in change.new.forms):
+            return self._change_error(
+                prepared,
+                change,
+                "proposed translation is missing",
+                source_unit.forms,
+            )
         peers = await self._peer_context(mapped, change.identity, changed_identities, metadata)
         request = ReviewRequest(
             format=mapped.component.format,

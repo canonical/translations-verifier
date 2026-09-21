@@ -1,3 +1,5 @@
+import pytest
+
 from wlreviser.config import ProjectConfig
 from wlreviser.github import ChangedFile, PullRequestMetadata, PullRequestRef
 from wlreviser.models import AIReview, ItemStatus, ReviewRequest, ReviewVerdict, TranslationIdentity
@@ -29,8 +31,14 @@ def config() -> ProjectConfig:
 
 
 class FakeGitHub:
-    def __init__(self, *, structural_removal: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        structural_removal: bool = False,
+        proposed_translation: str = "Willkommn",
+    ) -> None:
         self.structural_removal = structural_removal
+        self.proposed_translation = proposed_translation
         self.reads: list[tuple[str, str, str]] = []
 
     async def get_pull_request(self, pull: PullRequestRef) -> PullRequestMetadata:
@@ -67,7 +75,7 @@ class FakeGitHub:
             ("contributor/repo", HEAD_SHA, "l10n/app_de.arb"): (
                 '{"bye":"Tschüss"}'
                 if self.structural_removal
-                else '{"hello":"Willkommn","bye":"Tschüss"}'
+                else f'{{"hello":"{self.proposed_translation}","bye":"Tschüss"}}'
             ),
             ("contributor/repo", HEAD_SHA, "l10n/app_fr.arb"): (
                 '{"hello":"Bienvenue","bye":"Adieu"}'
@@ -152,6 +160,9 @@ msgstr[1] "{many}"
 
 
 class PluralGitHub:
+    def __init__(self, *, proposed_one: str = "Eine Datei") -> None:
+        self.proposed_one = proposed_one
+
     async def get_pull_request(self, pull: PullRequestRef) -> PullRequestMetadata:
         return PullRequestMetadata(
             number=pull.number,
@@ -172,7 +183,9 @@ class PluralGitHub:
         values = {
             (BASE_SHA, "l10n/messages_en.po"): plural_po("One file", "Many files"),
             (BASE_SHA, "l10n/messages_de.po"): plural_po("Eine Datei", "Viele Dateien"),
-            (HEAD_SHA, "l10n/messages_de.po"): plural_po("Eine Datei", "Viele Datein"),
+            (HEAD_SHA, "l10n/messages_de.po"): plural_po(
+                self.proposed_one, "Viele Datein"
+            ),
         }
         return values.get((sha, path))
 
@@ -246,6 +259,39 @@ async def test_structurally_invalid_removal_is_error_without_ai() -> None:
     assert report.counts.errors == 1
     assert report.items[0].change.value == "removed"
     assert "still exists" in (report.items[0].error or "")
+    assert reviewer.requests == []
+
+
+@pytest.mark.parametrize("proposed_translation", ["", "   "])
+async def test_missing_translation_is_error_without_ai(proposed_translation: str) -> None:
+    reviewer = FakeReviewer()
+    service = VerificationService(
+        config(),
+        FakeGitHub(proposed_translation=proposed_translation),
+        FakeWeblate(),
+        reviewer,
+    )
+
+    report = await service.verify("https://github.com/canonical/repo/pull/7")
+
+    assert report.counts.errors == 1
+    error = next(item for item in report.items if item.status is ItemStatus.ERROR)
+    assert error.error == "proposed translation is missing"
+    assert error.pr_target == (proposed_translation,)
+    assert [request.source for request in reviewer.requests] == [("Bye",)]
+
+
+async def test_missing_plural_form_is_error_without_ai() -> None:
+    reviewer = FakeReviewer()
+    service = VerificationService(
+        plural_config(), PluralGitHub(proposed_one=""), PluralWeblate(), reviewer
+    )
+
+    report = await service.verify("https://github.com/canonical/repo/pull/7")
+
+    assert report.counts.errors == 1
+    assert report.items[0].error == "proposed translation is missing"
+    assert report.items[0].pr_target == ("", "Viele Datein")
     assert reviewer.requests == []
 
 
