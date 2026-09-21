@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/canonical/translations-verifier/compare/v0.1.0...v0.2.0) (2026-09-21)
+
+
+### Features
+
+* handle empty proposed translation without ai help ([fd672f8](https://github.com/canonical/translations-verifier/commit/fd672f8870a40e485cbae1f7b26ba8b47a471d43))
+
 ## 0.1.0 (2026-09-18)
 
 
