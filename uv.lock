@@ -717,8 +717,24 @@ wheels = [
 ]
 
 [[package]]
+name = "wlc"
+version = "2.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "argcomplete" },
+    { name = "python-dateutil" },
+    { name = "pyxdg" },
+    { name = "requests" },
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8e/fd/fe44a900f95bcea8536e7ffa9391f313da17fc39358b61dc70ae786e8cf8/wlc-2.2.0.tar.gz", hash = "sha256:5806f7bbee6cdba5dbb38258a3d659f05fd9fc9c91593d1ecdbdd700da42e08b", size = 120615, upload-time = "2026-09-01T16:53:14.769Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d7/18/7cbc9f04805faf107f10ed804587dc626f229d1f3273704eab46f97290a0/wlc-2.2.0-py3-none-any.whl", hash = "sha256:9b7b4e7fded6f7101720c1b0865f0d148dc1e2f7ad7f4f0d9edb54517729abc8", size = 55336, upload-time = "2026-09-01T16:53:13.21Z" },
+]
+
+[[package]]
 name = "wlreviser"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },
@@ -761,20 +777,4 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=1.1.0" },
     { name = "respx", specifier = ">=0.22.0" },
     { name = "ruff", specifier = ">=0.12.12" },
-]
-
-[[package]]
-name = "wlc"
-version = "2.2.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "argcomplete" },
-    { name = "python-dateutil" },
-    { name = "pyxdg" },
-    { name = "requests" },
-    { name = "urllib3" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/8e/fd/fe44a900f95bcea8536e7ffa9391f313da17fc39358b61dc70ae786e8cf8/wlc-2.2.0.tar.gz", hash = "sha256:5806f7bbee6cdba5dbb38258a3d659f05fd9fc9c91593d1ecdbdd700da42e08b", size = 120615, upload-time = "2026-09-01T16:53:14.769Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d7/18/7cbc9f04805faf107f10ed804587dc626f229d1f3273704eab46f97290a0/wlc-2.2.0-py3-none-any.whl", hash = "sha256:9b7b4e7fded6f7101720c1b0865f0d148dc1e2f7ad7f4f0d9edb54517729abc8", size = 55336, upload-time = "2026-09-01T16:53:13.21Z" },
 ]
