@@ -44,7 +44,7 @@ def test_release_please_policy() -> None:
     assert {
         "type": "toml",
         "path": "uv.lock",
-        "jsonpath": "$.package[?(@.name == 'wlreviser')].version",
+        "jsonpath": "$.package[?(@.name.value == 'wlreviser')].version",
     } in package["extra-files"]
 
 

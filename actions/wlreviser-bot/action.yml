@@ -31,7 +31,7 @@ runs:
 
     - name: Set up Python
       if: steps.preflight.outputs.proceed == 'true'
-      uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
       with:
         python-version-file: ${{ github.action_path }}/../../.python-version
 
@@ -57,7 +57,7 @@ runs:
     - name: Save verification report
       id: upload
       if: steps.execute.outputs.report_path != ''
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: ${{ steps.execute.outputs.artifact_name }}
         path: ${{ steps.execute.outputs.report_path }}
