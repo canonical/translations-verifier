@@ -32,8 +32,10 @@ def render_verification(report: VerificationReport, report_path: Path, console: 
                 Text("Full HTML and the proposed correction are available in the JSON report.")
             )
             continue
+        source = "\n".join(item.source or ())
         current = "\n".join(item.pr_target or ())
         proposed = item.suggested_translation or ""
+        console.print(Text(f"Source: {source}"))
         console.print(Text(f"Current: {current}"))
         console.print(Text(f"Proposed: {proposed}"))
         console.print(Text(f"Reason: {item.reason or ''}"))
