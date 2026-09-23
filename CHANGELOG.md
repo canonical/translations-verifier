@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0](https://github.com/canonical/translations-verifier/compare/v0.2.0...v0.3.0) (2026-09-23)
+
+
+### Features
+
+* add source text to the console output ([#18](https://github.com/canonical/translations-verifier/issues/18)) ([3cb7398](https://github.com/canonical/translations-verifier/commit/3cb7398e4f0b1cb16c7cb8bdc3c0fc6504849357))
+
+
+### Bug Fixes
+
+* updated release-please support for uv lockfile ([#20](https://github.com/canonical/translations-verifier/issues/20)) ([6aab451](https://github.com/canonical/translations-verifier/commit/6aab4519906fb8d22da0a8cf3a1364d30cdb613b))
+
 ## [0.2.0](https://github.com/canonical/translations-verifier/compare/v0.1.0...v0.2.0) (2026-09-21)
 
 
