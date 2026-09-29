@@ -67,7 +67,7 @@ def test_html_is_one_full_document_unit() -> None:
     content = "<!doctype html>\n<h1>Hello</h1>\n"
 
     catalog = HtmlAdapter().parse(content, "slides/en/welcome.html")
-    unit = catalog.units[TranslationIdentity(key="welcome.html")]
+    unit = catalog.units[TranslationIdentity(key="document")]
 
     assert unit.forms == (content,)
     assert unit.metadata == {}
