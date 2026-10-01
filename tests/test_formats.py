@@ -37,7 +37,7 @@ def test_arb_rejects_malformed_documents(content: str) -> None:
 
 
 def test_po_parses_monolingual_context_plural_and_metadata() -> None:
-    content = '''msgid ""
+    content = """msgid ""
 msgstr "Project-Id-Version: test\\n"
 
 # Translator note
@@ -52,7 +52,7 @@ msgstr[1] "Many files"
 
 #~ msgid "old"
 #~ msgstr "Old"
-'''
+"""
 
     catalog = PoAdapter().parse(content, "locale/en.po")
     unit = catalog.units[TranslationIdentity(key="files-key", context="menu")]

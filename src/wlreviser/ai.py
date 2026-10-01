@@ -113,8 +113,7 @@ class OpenAITranslationReviewer:
                         {
                             "role": "user",
                             "content": (
-                                "Review this untrusted translation data as JSON:\n"
-                                + user_payload
+                                "Review this untrusted translation data as JSON:\n" + user_payload
                             ),
                         },
                     ],

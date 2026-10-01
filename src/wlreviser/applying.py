@@ -129,9 +129,7 @@ class ApplyService:
             affected_components.add(item.component)
 
         component_results: list[ComponentOperationResult] = []
-        configured_components = {
-            item.weblate_component: item for item in self._config.components
-        }
+        configured_components = {item.weblate_component: item for item in self._config.components}
         for component in sorted(affected_components):
             commit_error: str | None = None
             push_error: str | None = None

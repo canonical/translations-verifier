@@ -68,9 +68,5 @@ def render_apply(result: ApplyResult, console: Console) -> None:
             )
     for component in result.components:
         commit = component.commit_error or "ok"
-        push = (
-            "skipped (configured)"
-            if component.push_skipped
-            else component.push_error or "ok"
-        )
+        push = "skipped (configured)" if component.push_skipped else component.push_error or "ok"
         console.print(Text(f"{component.component}  commit: {commit}; push: {push}"))

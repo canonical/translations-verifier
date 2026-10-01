@@ -183,17 +183,13 @@ class PluralGitHub:
         values = {
             (BASE_SHA, "l10n/messages_en.po"): plural_po("One file", "Many files"),
             (BASE_SHA, "l10n/messages_de.po"): plural_po("Eine Datei", "Viele Dateien"),
-            (HEAD_SHA, "l10n/messages_de.po"): plural_po(
-                self.proposed_one, "Viele Datein"
-            ),
+            (HEAD_SHA, "l10n/messages_de.po"): plural_po(self.proposed_one, "Viele Datein"),
         }
         return values.get((sha, path))
 
 
 class PluralWeblate:
-    def resolve_translation(
-        self, component: str, repository_path: str
-    ) -> WeblateTranslation:
+    def resolve_translation(self, component: str, repository_path: str) -> WeblateTranslation:
         return WeblateTranslation(
             project="project",
             component=component,
@@ -307,6 +303,4 @@ async def test_rejected_multi_form_translation_is_not_applyable() -> None:
     assert rejection.suggested_translation == "Viele Dateien"
     assert rejection.applyable is False
     assert rejection.unit_id is None
-    assert rejection.error == (
-        "automatic correction is unavailable for multi-form translations"
-    )
+    assert rejection.error == ("automatic correction is unavailable for multi-form translations")

@@ -88,8 +88,7 @@ async def test_reviewer_rejects_array_suggestion_and_prose_without_retry() -> No
         nonlocal calls
         calls += 1
         return completion(
-            '{"verdict":"reject","reason":"Incorrect",'
-            '"suggested_translation":["one"]}'
+            '{"verdict":"reject","reason":"Incorrect","suggested_translation":["one"]}'
         )
 
     reviewer = OpenAITranslationReviewer(ai_config(), "token", create_completion=create)
@@ -101,9 +100,9 @@ async def test_reviewer_rejects_array_suggestion_and_prose_without_retry() -> No
         return completion("```json\n{}\n```")
 
     with pytest.raises(MalformedResponseError, match="invalid review"):
-        await OpenAITranslationReviewer(
-            ai_config(), None, create_completion=prose
-        ).review(request())
+        await OpenAITranslationReviewer(ai_config(), None, create_completion=prose).review(
+            request()
+        )
 
 
 async def test_reviewer_retries_one_transport_failure() -> None:
@@ -116,9 +115,9 @@ async def test_reviewer_retries_one_transport_failure() -> None:
             raise httpx.ReadTimeout("timeout")
         return completion('{"verdict":"ok","reason":null,"suggested_translation":null}')
 
-    result = await OpenAITranslationReviewer(
-        ai_config(), None, create_completion=create
-    ).review(request())
+    result = await OpenAITranslationReviewer(ai_config(), None, create_completion=create).review(
+        request()
+    )
 
     assert result.verdict is ReviewVerdict.OK
     assert calls == 2

@@ -175,8 +175,7 @@ class VerificationItem(StrictModel):
     def validate_outcome(self) -> Self:
         if self.status is ItemStatus.PASSED:
             if any(
-                value is not None
-                for value in (self.reason, self.suggested_translation, self.error)
+                value is not None for value in (self.reason, self.suggested_translation, self.error)
             ):
                 raise ValueError("passed items cannot include rejection or error details")
             if self.applyable:

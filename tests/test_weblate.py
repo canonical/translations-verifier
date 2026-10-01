@@ -136,9 +136,7 @@ def test_wlc_unit_search_uses_canonical_translation_url(
         )
     )
 
-    assert paths == [
-        "https://weblate.example/api/translations/project/component/zh_Hans/units/"
-    ]
+    assert paths == ["https://weblate.example/api/translations/project/component/zh_Hans/units/"]
 
 
 def test_retries_connection_failure_once() -> None:
