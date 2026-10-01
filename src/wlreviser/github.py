@@ -110,7 +110,9 @@ def parse_pull_request_url(url: str) -> PullRequestRef:
         raise PreflightError("pull request URL must be an exact HTTPS github.com URL")
     match = _PR_PATH_PATTERN.fullmatch(parsed.path)
     if match is None:
-        raise PreflightError("pull request URL must have the form https://github.com/owner/repo/pull/number")
+        raise PreflightError(
+            "pull request URL must have the form https://github.com/owner/repo/pull/number"
+        )
     return PullRequestRef(
         owner=match.group("owner"),
         repository=match.group("repo"),

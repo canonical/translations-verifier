@@ -129,9 +129,7 @@ class WlcBackend:
             except KeyError as exc:
                 raise MalformedResponseError("Weblate translation metadata is incomplete") from exc
 
-    def search_units(
-        self, translation: WeblateTranslation, query: str
-    ) -> Iterable[WeblateUnit]:
+    def search_units(self, translation: WeblateTranslation, query: str) -> Iterable[WeblateUnit]:
         path = f"{translation.api_url.rstrip('/')}/units/"
         units = cast(Iterable[object], self.client.list_units(path, params={"q": query}))
         for unit in units:

@@ -86,9 +86,7 @@ def test_non_html_rendering_includes_source_current_and_proposed_text() -> None:
 def test_apply_rendering_distinguishes_configured_push_skip() -> None:
     result = ApplyResult(
         items=(),
-        components=(
-            ComponentOperationResult(component="component", push_skipped=True),
-        ),
+        components=(ComponentOperationResult(component="component", push_skipped=True),),
     )
     console = Console(record=True, width=80)
 

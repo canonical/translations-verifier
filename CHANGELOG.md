@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/canonical/translations-verifier/compare/v0.3.0...v0.3.1) (2026-09-29)
+
+
+### Bug Fixes
+
+* properly parse html files ([325ac7a](https://github.com/canonical/translations-verifier/commit/325ac7ae55abb2ab672824d43333e55817d8f142))
+
 ## [0.3.0](https://github.com/canonical/translations-verifier/compare/v0.2.0...v0.3.0) (2026-09-23)
 
 

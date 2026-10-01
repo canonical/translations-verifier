@@ -72,9 +72,7 @@ class _MappedFile:
     @property
     def path(self) -> str:
         return (
-            self.new_path
-            or self.old_path
-            or self.component.path_for_locale(self.filename_locale)
+            self.new_path or self.old_path or self.component.path_for_locale(self.filename_locale)
         )
 
 
@@ -303,9 +301,7 @@ class VerificationService:
                     )
                 )
         changes = tuple(
-            change
-            for change in diff_catalogs(old, new)
-            if change.identity.key not in issue_keys
+            change for change in diff_catalogs(old, new) if change.identity.key not in issue_keys
         )
         mapping_error: str | None = None
         try:
@@ -491,9 +487,7 @@ class VerificationService:
             if unit is None and mapping_error is None:
                 mapping_error = "no unique Weblate unit matches the rejected translation"
         applyable = (
-            not multi_form
-            and pending.mapped.component.format != "html"
-            and unit is not None
+            not multi_form and pending.mapped.component.format != "html" and unit is not None
         )
         return self._pending_item(
             pending,
@@ -525,9 +519,7 @@ class VerificationService:
             format=pending.mapped.component.format,
             path=pending.mapped.path,
             filename_locale=pending.mapped.filename_locale,
-            weblate_locale=(
-                pending.translation.language_code if pending.translation else None
-            ),
+            weblate_locale=(pending.translation.language_code if pending.translation else None),
             weblate_locale_name=(
                 pending.translation.language_name if pending.translation else None
             ),
@@ -565,9 +557,7 @@ class VerificationService:
             format=prepared.mapped.component.format,
             path=prepared.mapped.path,
             filename_locale=prepared.mapped.filename_locale,
-            weblate_locale=(
-                prepared.translation.language_code if prepared.translation else None
-            ),
+            weblate_locale=(prepared.translation.language_code if prepared.translation else None),
             weblate_locale_name=(
                 prepared.translation.language_name if prepared.translation else None
             ),
